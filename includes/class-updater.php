@@ -286,7 +286,11 @@ class Updater {
 	}
 
 	/**
-	 * Fetch the latest release from the GitHub API (cached).
+	 * Fetch the highest-versioned release from the GitHub API (cached).
+	 *
+	 * Fetches all releases and picks the one with the highest semver tag,
+	 * rather than relying on GitHub's "Latest" badge which only applies to
+	 * releases created from the default branch.
 	 *
 	 * Supports private repositories via the DH_INDEXNOW_GITHUB_TOKEN constant.
 	 * Define it in wp-config.php:
@@ -304,7 +308,7 @@ class Updater {
 			return null;
 		}
 
-		$url     = 'https://api.github.com/repos/' . $this->repo . '/releases/latest';
+		$url     = 'https://api.github.com/repos/' . $this->repo . '/releases?per_page=20';
 		$headers = array(
 			'Accept'     => 'application/vnd.github.v3+json',
 			'User-Agent' => 'DH-IndexNow/' . $this->current_version,
@@ -337,7 +341,7 @@ class Updater {
 				$this->repo
 			);
 			if ( 404 === $code ) {
-				$error_msg .= ' ' . __( 'Ensure the repository is public and has a published (non-draft) release.', 'dh-indexnow' );
+				$error_msg .= ' ' . __( 'Ensure the repository is public and has at least one published release.', 'dh-indexnow' );
 			} elseif ( 403 === $code ) {
 				$error_msg .= ' ' . __( 'API rate limit exceeded or token is invalid. Define DH_INDEXNOW_GITHUB_TOKEN in wp-config.php.', 'dh-indexnow' );
 			}
@@ -346,17 +350,44 @@ class Updater {
 			return null;
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( empty( $body['tag_name'] ) ) {
-			set_transient( self::ERROR_KEY, __( 'GitHub API response did not contain a valid tag_name.', 'dh-indexnow' ), self::CACHE_TTL );
+		$releases = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( ! is_array( $releases ) || empty( $releases ) ) {
+			set_transient( self::ERROR_KEY, __( 'No releases found in the GitHub repository.', 'dh-indexnow' ), self::CACHE_TTL );
+			set_transient( self::CACHE_KEY, 'error', 900 );
+			return null;
+		}
+
+		// Find the release with the highest semver tag (skip drafts and pre-releases).
+		$best = null;
+		foreach ( $releases as $release ) {
+			if ( ! empty( $release['draft'] ) || ! empty( $release['prerelease'] ) ) {
+				continue;
+			}
+			if ( empty( $release['tag_name'] ) ) {
+				continue;
+			}
+			if ( null === $best ) {
+				$best = $release;
+				continue;
+			}
+			$current_ver = ltrim( $release['tag_name'], 'vV' );
+			$best_ver    = ltrim( $best['tag_name'], 'vV' );
+			if ( version_compare( $current_ver, $best_ver, '>' ) ) {
+				$best = $release;
+			}
+		}
+
+		if ( null === $best ) {
+			set_transient( self::ERROR_KEY, __( 'No published (non-draft, non-prerelease) releases found.', 'dh-indexnow' ), self::CACHE_TTL );
+			set_transient( self::CACHE_KEY, 'error', 900 );
 			return null;
 		}
 
 		// Clear any previous error on success.
 		delete_transient( self::ERROR_KEY );
-		set_transient( self::CACHE_KEY, $body, self::CACHE_TTL );
+		set_transient( self::CACHE_KEY, $best, self::CACHE_TTL );
 
-		return $body;
+		return $best;
 	}
 
 	/**
