@@ -85,6 +85,9 @@ class Updater {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 10, 3 );
 		add_filter( 'upgrader_post_install', array( $this, 'post_install' ), 10, 3 );
+		add_filter( 'plugin_action_links_' . $this->plugin_basename, array( $this, 'add_check_update_link' ) );
+		add_action( 'admin_init', array( $this, 'handle_check_update' ) );
+		add_action( 'admin_notices', array( $this, 'check_update_notice' ) );
 	}
 
 	/**
@@ -199,6 +202,70 @@ class Updater {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Add a "Check for Update" link to the plugin action links.
+	 *
+	 * @param array $links Existing action links.
+	 * @return array Modified action links.
+	 */
+	public function add_check_update_link( array $links ): array {
+		$url = wp_nonce_url(
+			admin_url( 'plugins.php?dh_indexnow_check_update=1' ),
+			'dh_indexnow_check_update'
+		);
+		$links['check_update'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Check for Update', 'dh-indexnow' ) . '</a>';
+		return $links;
+	}
+
+	/**
+	 * Handle the manual "Check for Update" action.
+	 *
+	 * @return void
+	 */
+	public function handle_check_update(): void {
+		if ( ! isset( $_GET['dh_indexnow_check_update'] ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+
+		check_admin_referer( 'dh_indexnow_check_update' );
+
+		self::clear_cache();
+		wp_update_plugins();
+
+		$has_update  = false;
+		$update_data = get_site_transient( 'update_plugins' );
+		if ( isset( $update_data->response[ $this->plugin_basename ] ) ) {
+			$has_update = true;
+		}
+
+		wp_safe_redirect( admin_url( 'plugins.php?dh_indexnow_checked=1&dh_indexnow_has_update=' . ( $has_update ? '1' : '0' ) ) );
+		exit;
+	}
+
+	/**
+	 * Display an admin notice after a manual update check.
+	 *
+	 * @return void
+	 */
+	public function check_update_notice(): void {
+		if ( ! isset( $_GET['dh_indexnow_checked'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$has_update = ! empty( $_GET['dh_indexnow_has_update'] );
+		$class      = $has_update ? 'notice-warning' : 'notice-success';
+		$message    = $has_update
+			? __( 'DH IndexNow: A new version is available! You can update it above.', 'dh-indexnow' )
+			: __( 'DH IndexNow: You are running the latest version.', 'dh-indexnow' );
+
+		printf( '<div class="notice %s is-dismissible"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
 	}
 
 	/**
