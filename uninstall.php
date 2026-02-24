@@ -22,6 +22,8 @@ $options = array(
 	'dh_indexnow_batch_size',
 	'dh_indexnow_auto_submit',
 	'dh_indexnow_db_version',
+	'dh_indexnow_github_repo',
+	'dh_indexnow_github_token',
 );
 
 foreach ( $options as $option ) {
@@ -30,6 +32,7 @@ foreach ( $options as $option ) {
 
 // Delete transients.
 delete_transient( 'dh_indexnow_google_token' );
+delete_transient( 'dh_indexnow_github_update' );
 
 // Remove the key verification file.
 $key = get_option( 'dh_indexnow_api_key', '' );
