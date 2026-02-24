@@ -35,19 +35,13 @@ class Activator {
 	 * @return void
 	 */
 	private static function generate_api_key(): void {
-		$existing = get_option( 'dh_indexnow_api_key', '' );
-		if ( ! empty( $existing ) ) {
-			return;
+		$key = get_option( 'dh_indexnow_api_key', '' );
+		if ( empty( $key ) ) {
+			$key = bin2hex( random_bytes( 16 ) );
+			update_option( 'dh_indexnow_api_key', $key );
 		}
 
-		$key = bin2hex( random_bytes( 16 ) );
-		update_option( 'dh_indexnow_api_key', $key );
-
-		$file = ABSPATH . $key . '.txt';
-		if ( ! file_exists( $file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $file, $key );
-		}
+		self::ensure_key_file( $key );
 
 		// Set defaults.
 		if ( false === get_option( 'dh_indexnow_post_types' ) ) {
@@ -59,6 +53,26 @@ class Activator {
 		if ( false === get_option( 'dh_indexnow_auto_submit' ) ) {
 			update_option( 'dh_indexnow_auto_submit', '1' );
 		}
+	}
+
+	/**
+	 * Ensure the key verification file exists at the site root.
+	 *
+	 * @param string $key The IndexNow API key.
+	 * @return bool True if the file exists or was created successfully.
+	 */
+	public static function ensure_key_file( string $key ): bool {
+		if ( empty( $key ) ) {
+			return false;
+		}
+
+		$file = ABSPATH . $key . '.txt';
+		if ( file_exists( $file ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		return false !== file_put_contents( $file, $key );
 	}
 
 	/**
