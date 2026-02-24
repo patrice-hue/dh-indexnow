@@ -39,6 +39,9 @@ class Deactivator {
 			wp_unschedule_event( $timestamp, 'dh_indexnow_process_queue' );
 		}
 
+		// Clear GitHub update checker cache.
+		delete_transient( 'dh_indexnow_github_update' );
+
 		flush_rewrite_rules();
 	}
 }
