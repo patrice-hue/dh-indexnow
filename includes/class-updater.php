@@ -208,8 +208,12 @@ class Updater {
 	 */
 	private function get_latest_release(): ?array {
 		$cached = get_transient( self::CACHE_KEY );
-		if ( false !== $cached ) {
+		if ( is_array( $cached ) && ! empty( $cached['tag_name'] ) ) {
 			return $cached;
+		}
+		// If the transient is a non-false placeholder (e.g. from a cached failure), skip the API call.
+		if ( false !== $cached ) {
+			return null;
 		}
 
 		$url  = 'https://api.github.com/repos/' . $this->repo . '/releases/latest';
@@ -225,7 +229,7 @@ class Updater {
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			// Cache failure briefly (15 min) to avoid hammering.
-			set_transient( self::CACHE_KEY, null, 900 );
+			set_transient( self::CACHE_KEY, 'error', 900 );
 			return null;
 		}
 
