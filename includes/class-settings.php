@@ -69,16 +69,19 @@ class Settings {
 	 * @return string Encrypted JSON string.
 	 */
 	public function sanitize_google_credentials( string $value ): string {
-		// WordPress magic quotes (addslashes) are applied to all $_POST data,
-		// which corrupts JSON by escaping quotes and backslashes. Undo this
-		// before attempting to parse the JSON.
-		$value = wp_unslash( trim( $value ) );
+		$value = trim( $value );
 		if ( empty( $value ) ) {
 			return '';
 		}
 
-		// Validate it's valid JSON.
+		// Try decoding as-is first (WordPress may have already stripped slashes).
 		$decoded = json_decode( $value, true );
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			// Magic quotes (addslashes) may still be present; undo and retry.
+			$value   = wp_unslash( $value );
+			$decoded = json_decode( $value, true );
+		}
+
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			add_settings_error(
 				'dh_indexnow_google_credentials',
