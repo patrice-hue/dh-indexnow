@@ -69,7 +69,10 @@ class Settings {
 	 * @return string Encrypted JSON string.
 	 */
 	public function sanitize_google_credentials( string $value ): string {
-		$value = trim( $value );
+		// WordPress magic quotes (addslashes) are applied to all $_POST data,
+		// which corrupts JSON by escaping quotes and backslashes. Undo this
+		// before attempting to parse the JSON.
+		$value = wp_unslash( trim( $value ) );
 		if ( empty( $value ) ) {
 			return '';
 		}
