@@ -92,9 +92,7 @@ function dh_indexnow_init(): void {
 	}
 
 	// GitHub update checker.
-	$github_repo  = get_option( 'dh_indexnow_github_repo', 'patrice-hue/dh-indexnow' );
-	$github_token = get_option( 'dh_indexnow_github_token', '' );
-	$updater      = new Updater( $github_repo, DH_INDEXNOW_VERSION, DH_INDEXNOW_BASENAME, $github_token );
+	$updater = new Updater( 'patrice-hue/dh-indexnow', DH_INDEXNOW_VERSION, DH_INDEXNOW_BASENAME );
 	$updater->init();
 
 	// Serve key verification file header.

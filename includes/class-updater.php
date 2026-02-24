@@ -49,13 +49,6 @@ class Updater {
 	private string $plugin_slug;
 
 	/**
-	 * Optional GitHub personal access token for private repos.
-	 *
-	 * @var string
-	 */
-	private string $access_token;
-
-	/**
 	 * Transient key used to cache the GitHub API response.
 	 *
 	 * @var string
@@ -75,14 +68,12 @@ class Updater {
 	 * @param string $repo            GitHub owner/repo (e.g. "patrice-hue/dh-indexnow").
 	 * @param string $current_version Current installed version.
 	 * @param string $plugin_basename Plugin basename.
-	 * @param string $access_token    Optional GitHub PAT for private repos.
 	 */
-	public function __construct( string $repo, string $current_version, string $plugin_basename, string $access_token = '' ) {
+	public function __construct( string $repo, string $current_version, string $plugin_basename ) {
 		$this->repo            = $repo;
 		$this->current_version = $current_version;
 		$this->plugin_basename = $plugin_basename;
 		$this->plugin_slug     = dirname( $plugin_basename );
-		$this->access_token    = $access_token;
 	}
 
 	/**
@@ -229,10 +220,6 @@ class Updater {
 				'User-Agent' => 'DH-IndexNow/' . $this->current_version,
 			),
 		);
-
-		if ( ! empty( $this->access_token ) ) {
-			$args['headers']['Authorization'] = 'Bearer ' . $this->access_token;
-		}
 
 		$response = wp_remote_get( $url, $args );
 
