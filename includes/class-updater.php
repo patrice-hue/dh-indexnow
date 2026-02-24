@@ -56,6 +56,13 @@ class Updater {
 	private const CACHE_KEY = 'dh_indexnow_github_update';
 
 	/**
+	 * Transient key for the last API error message.
+	 *
+	 * @var string
+	 */
+	private const ERROR_KEY = 'dh_indexnow_github_update_error';
+
+	/**
 	 * Cache lifetime in seconds (12 hours).
 	 *
 	 * @var int
@@ -260,16 +267,30 @@ class Updater {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$has_update = ! empty( $_GET['dh_indexnow_has_update'] );
-		$class      = $has_update ? 'notice-warning' : 'notice-success';
-		$message    = $has_update
-			? __( 'DH IndexNow: A new version is available! You can update it above.', 'dh-indexnow' )
-			: __( 'DH IndexNow: You are running the latest version.', 'dh-indexnow' );
+
+		// Check if the API call had an error.
+		$api_error = get_transient( self::ERROR_KEY );
+
+		if ( $has_update ) {
+			$class   = 'notice-warning';
+			$message = __( 'DH IndexNow: A new version is available! You can update it above.', 'dh-indexnow' );
+		} elseif ( $api_error ) {
+			$class   = 'notice-error';
+			$message = __( 'DH IndexNow: Update check failed — ', 'dh-indexnow' ) . $api_error;
+		} else {
+			$class   = 'notice-success';
+			$message = __( 'DH IndexNow: You are running the latest version.', 'dh-indexnow' );
+		}
 
 		printf( '<div class="notice %s is-dismissible"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
 	}
 
 	/**
 	 * Fetch the latest release from the GitHub API (cached).
+	 *
+	 * Supports private repositories via the DH_INDEXNOW_GITHUB_TOKEN constant.
+	 * Define it in wp-config.php:
+	 *   define( 'DH_INDEXNOW_GITHUB_TOKEN', 'ghp_your_token_here' );
 	 *
 	 * @return array|null Release data or null on failure.
 	 */
@@ -283,28 +304,56 @@ class Updater {
 			return null;
 		}
 
-		$url  = 'https://api.github.com/repos/' . $this->repo . '/releases/latest';
+		$url     = 'https://api.github.com/repos/' . $this->repo . '/releases/latest';
+		$headers = array(
+			'Accept'     => 'application/vnd.github.v3+json',
+			'User-Agent' => 'DH-IndexNow/' . $this->current_version,
+		);
+
+		// Use a GitHub token for private repos or to avoid rate limits.
+		if ( defined( 'DH_INDEXNOW_GITHUB_TOKEN' ) && ! empty( DH_INDEXNOW_GITHUB_TOKEN ) ) {
+			$headers['Authorization'] = 'token ' . DH_INDEXNOW_GITHUB_TOKEN;
+		}
+
 		$args = array(
 			'timeout' => 10,
-			'headers' => array(
-				'Accept'     => 'application/vnd.github.v3+json',
-				'User-Agent' => 'DH-IndexNow/' . $this->current_version,
-			),
+			'headers' => $headers,
 		);
 
 		$response = wp_remote_get( $url, $args );
 
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			// Cache failure briefly (15 min) to avoid hammering.
+		if ( is_wp_error( $response ) ) {
+			set_transient( self::ERROR_KEY, $response->get_error_message(), self::CACHE_TTL );
+			set_transient( self::CACHE_KEY, 'error', 900 );
+			return null;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $code ) {
+			$error_msg = sprintf(
+				/* translators: 1: HTTP status code, 2: GitHub repo slug. */
+				__( 'GitHub API returned HTTP %1$d for %2$s.', 'dh-indexnow' ),
+				$code,
+				$this->repo
+			);
+			if ( 404 === $code ) {
+				$error_msg .= ' ' . __( 'Ensure the repository is public and has a published (non-draft) release.', 'dh-indexnow' );
+			} elseif ( 403 === $code ) {
+				$error_msg .= ' ' . __( 'API rate limit exceeded or token is invalid. Define DH_INDEXNOW_GITHUB_TOKEN in wp-config.php.', 'dh-indexnow' );
+			}
+			set_transient( self::ERROR_KEY, $error_msg, self::CACHE_TTL );
 			set_transient( self::CACHE_KEY, 'error', 900 );
 			return null;
 		}
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( empty( $body['tag_name'] ) ) {
+			set_transient( self::ERROR_KEY, __( 'GitHub API response did not contain a valid tag_name.', 'dh-indexnow' ), self::CACHE_TTL );
 			return null;
 		}
 
+		// Clear any previous error on success.
+		delete_transient( self::ERROR_KEY );
 		set_transient( self::CACHE_KEY, $body, self::CACHE_TTL );
 
 		return $body;
@@ -319,5 +368,6 @@ class Updater {
 	 */
 	public static function clear_cache(): void {
 		delete_transient( self::CACHE_KEY );
+		delete_transient( self::ERROR_KEY );
 	}
 }
