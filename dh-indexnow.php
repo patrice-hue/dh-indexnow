@@ -101,6 +101,9 @@ function dh_indexnow_init(): void {
 		Activator::ensure_key_file( $api_key );
 	}
 
+	// Ensure the cron event is scheduled (self-healing).
+	Activator::schedule_cron();
+
 	// Serve key verification file header.
 	add_action( 'init', function (): void {
 		$key = get_option( 'dh_indexnow_api_key', '' );

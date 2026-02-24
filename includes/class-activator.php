@@ -114,8 +114,20 @@ class Activator {
 	 *
 	 * @return void
 	 */
-	private static function schedule_cron(): void {
+	public static function schedule_cron(): void {
 		if ( ! wp_next_scheduled( 'dh_indexnow_process_queue' ) ) {
+			// Register the custom schedule inline — during activation,
+			// plugins_loaded has already fired so Queue::init() (which
+			// normally registers it) will not have run yet.
+			add_filter( 'cron_schedules', function ( array $schedules ): array {
+				if ( ! isset( $schedules['dh_indexnow_five_minutes'] ) ) {
+					$schedules['dh_indexnow_five_minutes'] = array(
+						'interval' => 300,
+						'display'  => __( 'Every 5 Minutes (DH IndexNow)', 'dh-indexnow' ),
+					);
+				}
+				return $schedules;
+			} );
 			wp_schedule_event( time(), 'dh_indexnow_five_minutes', 'dh_indexnow_process_queue' );
 		}
 	}
