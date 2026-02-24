@@ -1,0 +1,118 @@
+/**
+ * DH IndexNow — Admin Styles
+ *
+ * Minimal styles matching the default WordPress admin UI.
+ */
+
+/* Tab content spacing */
+.dh-indexnow-tab-content {
+	margin-top: 20px;
+}
+
+/* Status indicators */
+.dh-indexnow-status {
+	display: inline-block;
+	margin-left: 8px;
+	font-weight: 600;
+}
+
+.dh-indexnow-status--ok {
+	color: #00a32a;
+}
+
+.dh-indexnow-status--error {
+	color: #d63638;
+}
+
+/* Status badges */
+.dh-indexnow-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.5;
+}
+
+.dh-indexnow-badge--done {
+	background: #d4edda;
+	color: #155724;
+}
+
+.dh-indexnow-badge--pending {
+	background: #fff3cd;
+	color: #856404;
+}
+
+.dh-indexnow-badge--failed {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+/* Logs table columns */
+.column-date {
+	width: 160px;
+}
+
+.column-engine {
+	width: 100px;
+}
+
+.column-status {
+	width: 100px;
+}
+
+.column-http-code {
+	width: 90px;
+}
+
+.column-url code,
+.column-response code {
+	word-break: break-all;
+	font-size: 12px;
+}
+
+/* Manual submit section */
+.dh-indexnow-manual-submit,
+.dh-indexnow-bulk-submit {
+	max-width: 800px;
+}
+
+/* Spinner alignment */
+.dh-indexnow-manual-submit .spinner,
+.dh-indexnow-bulk-submit .spinner {
+	float: none;
+	vertical-align: middle;
+	margin-top: 0;
+}
+
+/* Results table */
+#dh-indexnow-results {
+	margin-top: 20px;
+}
+
+#dh-indexnow-results .wp-list-table {
+	margin-top: 10px;
+}
+
+/* Bulk message */
+.dh-indexnow-message {
+	display: inline-block;
+	margin-left: 10px;
+	vertical-align: middle;
+	font-style: italic;
+}
+
+/* Log actions bar */
+.dh-indexnow-logs .tablenav .alignright {
+	margin-right: 0;
+}
+
+.dh-indexnow-logs .tablenav .alignright .button {
+	margin-left: 5px;
+}
+
+/* Filter form inline */
+.dh-indexnow-logs .tablenav .alignleft select {
+	margin-right: 5px;
+}
