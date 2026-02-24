@@ -421,7 +421,7 @@ class Updater {
 			return null;
 		}
 
-		// Find the release with the highest semver tag (skip drafts and pre-releases).
+		// Find the release with the highest semver tag (skip drafts, pre-releases, and non-version tags).
 		$best = null;
 		foreach ( $releases as $release ) {
 			if ( ! empty( $release['draft'] ) || ! empty( $release['prerelease'] ) ) {
@@ -430,13 +430,17 @@ class Updater {
 			if ( empty( $release['tag_name'] ) ) {
 				continue;
 			}
+			$version = ltrim( $release['tag_name'], 'vV' );
+			// Skip tags that don't look like version numbers (e.g. "Bugs", "latest").
+			if ( ! preg_match( '/^\d+\.\d+/', $version ) ) {
+				continue;
+			}
 			if ( null === $best ) {
 				$best = $release;
 				continue;
 			}
-			$current_ver = ltrim( $release['tag_name'], 'vV' );
-			$best_ver    = ltrim( $best['tag_name'], 'vV' );
-			if ( version_compare( $current_ver, $best_ver, '>' ) ) {
+			$best_ver = ltrim( $best['tag_name'], 'vV' );
+			if ( version_compare( $version, $best_ver, '>' ) ) {
 				$best = $release;
 			}
 		}
