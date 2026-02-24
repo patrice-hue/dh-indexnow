@@ -22,8 +22,6 @@ $options = array(
 	'dh_indexnow_batch_size',
 	'dh_indexnow_auto_submit',
 	'dh_indexnow_db_version',
-	'dh_indexnow_github_repo',
-	'dh_indexnow_github_token',
 );
 
 foreach ( $options as $option ) {

@@ -14,8 +14,6 @@ $post_types   = get_option( 'dh_indexnow_post_types', array( 'post', 'page' ) );
 $exclude_urls = get_option( 'dh_indexnow_exclude_urls', '' );
 $batch_size   = get_option( 'dh_indexnow_batch_size', 100 );
 $auto_submit  = get_option( 'dh_indexnow_auto_submit', '1' );
-$github_repo  = get_option( 'dh_indexnow_github_repo', 'patrice-hue/dh-indexnow' );
-$github_token = get_option( 'dh_indexnow_github_token', '' );
 
 // Check key file status.
 $key_file_url    = home_url( '/' . $api_key . '.txt' );
@@ -117,42 +115,6 @@ $google_configured = ! empty( get_option( 'dh_indexnow_google_credentials', '' )
 						   <?php checked( $auto_submit, '1' ); ?> />
 					<?php esc_html_e( 'Automatically submit URLs when posts are published, updated, or deleted.', 'dh-indexnow' ); ?>
 				</label>
-			</td>
-		</tr>
-	</table>
-
-	<h2 class="title"><?php esc_html_e( 'Plugin Updates', 'dh-indexnow' ); ?></h2>
-	<p class="description"><?php esc_html_e( 'The plugin checks GitHub for new releases and shows updates on the Plugins page.', 'dh-indexnow' ); ?></p>
-
-	<table class="form-table" role="presentation">
-		<tr>
-			<th scope="row">
-				<label for="dh_indexnow_github_repo"><?php esc_html_e( 'GitHub Repository', 'dh-indexnow' ); ?></label>
-			</th>
-			<td>
-				<input type="text" id="dh_indexnow_github_repo" name="dh_indexnow_github_repo"
-					   value="<?php echo esc_attr( $github_repo ); ?>" class="regular-text"
-					   placeholder="owner/repo" />
-				<p class="description"><?php esc_html_e( 'Format: owner/repo (e.g. patrice-hue/dh-indexnow). The plugin will check this repository for new releases.', 'dh-indexnow' ); ?></p>
-			</td>
-		</tr>
-
-		<tr>
-			<th scope="row">
-				<label for="dh_indexnow_github_token"><?php esc_html_e( 'GitHub Access Token', 'dh-indexnow' ); ?></label>
-			</th>
-			<td>
-				<input type="password" id="dh_indexnow_github_token" name="dh_indexnow_github_token"
-					   value="<?php echo esc_attr( $github_token ); ?>" class="regular-text"
-					   autocomplete="off" />
-				<p class="description"><?php esc_html_e( 'Optional. Required only for private repositories. Use a GitHub Personal Access Token with repo read access.', 'dh-indexnow' ); ?></p>
-			</td>
-		</tr>
-
-		<tr>
-			<th scope="row"><?php esc_html_e( 'Current Version', 'dh-indexnow' ); ?></th>
-			<td>
-				<code><?php echo esc_html( DH_INDEXNOW_VERSION ); ?></code>
 			</td>
 		</tr>
 	</table>

@@ -60,17 +60,6 @@ class Settings {
 			'type'              => 'string',
 			'sanitize_callback' => 'sanitize_text_field',
 		) );
-
-		register_setting( 'dh_indexnow_general', 'dh_indexnow_github_repo', array(
-			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_text_field',
-			'default'           => 'patrice-hue/dh-indexnow',
-		) );
-
-		register_setting( 'dh_indexnow_general', 'dh_indexnow_github_token', array(
-			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_text_field',
-		) );
 	}
 
 	/**
