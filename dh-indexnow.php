@@ -95,6 +95,12 @@ function dh_indexnow_init(): void {
 	$updater = new Updater( 'patrice-hue/dh-indexnow', DH_INDEXNOW_VERSION, DH_INDEXNOW_BASENAME );
 	$updater->init();
 
+	// Ensure the key verification file exists (self-healing).
+	$api_key = get_option( 'dh_indexnow_api_key', '' );
+	if ( ! empty( $api_key ) && ! file_exists( ABSPATH . $api_key . '.txt' ) ) {
+		Activator::ensure_key_file( $api_key );
+	}
+
 	// Serve key verification file header.
 	add_action( 'init', function (): void {
 		$key = get_option( 'dh_indexnow_api_key', '' );
