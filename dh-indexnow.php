@@ -3,7 +3,7 @@
  * Plugin Name: DH IndexNow
  * Plugin URI:  https://github.com/patrice-hue/dh-indexnow
  * Description: Instant URL submission to Bing (IndexNow) and Google (Indexing API) with automatic triggers and manual bulk-submission UI.
- * Version:     1.4.1
+ * Version:     1.4.2
  * Author:      DH
  * Author URI:  https://github.com/patrice-hue
  * License:     GPL-2.0-or-later
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DH_INDEXNOW_VERSION', '1.4.1' );
+define( 'DH_INDEXNOW_VERSION', '1.4.2' );
 define( 'DH_INDEXNOW_FILE', __FILE__ );
 define( 'DH_INDEXNOW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DH_INDEXNOW_URL', plugin_dir_url( __FILE__ ) );
