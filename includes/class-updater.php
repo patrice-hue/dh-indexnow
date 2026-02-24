@@ -102,11 +102,11 @@ class Updater {
 	 *
 	 * Hooked to `pre_set_site_transient_update_plugins`.
 	 *
-	 * @param object $transient The update_plugins transient object.
-	 * @return object Modified transient.
+	 * @param mixed $transient The update_plugins transient value.
+	 * @return mixed Modified transient.
 	 */
-	public function check_for_update( object $transient ): object {
-		if ( empty( $transient->checked ) ) {
+	public function check_for_update( mixed $transient ): mixed {
+		if ( ! is_object( $transient ) ) {
 			return $transient;
 		}
 
@@ -118,18 +118,10 @@ class Updater {
 		$remote_version = ltrim( $release['tag_name'], 'vV' );
 
 		if ( version_compare( $remote_version, $this->current_version, '>' ) ) {
-			$transient->response[ $this->plugin_basename ] = (object) array(
-				'slug'        => $this->plugin_slug,
-				'plugin'      => $this->plugin_basename,
-				'new_version' => $remote_version,
-				'url'         => $release['html_url'],
-				'package'     => $release['zipball_url'],
-				'icons'       => array(),
-				'banners'     => array(),
-				'tested'      => '',
-				'requires'    => '6.0',
-				'requires_php' => '8.0',
-			);
+			if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
+				$transient->response = array();
+			}
+			$transient->response[ $this->plugin_basename ] = $this->build_update_object( $release, $remote_version );
 		}
 
 		return $transient;
@@ -195,8 +187,8 @@ class Updater {
 
 		global $wp_filesystem;
 
-		$plugin_dir  = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $this->plugin_slug;
-		$source      = $result['destination'];
+		$plugin_dir = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $this->plugin_slug;
+		$source     = $result['destination'];
 
 		// Rename the extracted folder to the correct plugin slug.
 		if ( $source !== $plugin_dir ) {
@@ -229,6 +221,10 @@ class Updater {
 	/**
 	 * Handle the manual "Check for Update" action.
 	 *
+	 * Bypasses wp_update_plugins() which has internal throttling that can
+	 * silently skip our filter. Instead, calls the GitHub API directly and
+	 * injects the result into the update_plugins transient.
+	 *
 	 * @return void
 	 */
 	public function handle_check_update(): void {
@@ -242,16 +238,44 @@ class Updater {
 
 		check_admin_referer( 'dh_indexnow_check_update' );
 
+		// Clear cached GitHub data so we fetch fresh.
 		self::clear_cache();
-		wp_update_plugins();
 
-		$has_update  = false;
-		$update_data = get_site_transient( 'update_plugins' );
-		if ( isset( $update_data->response[ $this->plugin_basename ] ) ) {
-			$has_update = true;
+		// Fetch directly from GitHub (bypasses wp_update_plugins throttle).
+		$release = $this->get_latest_release();
+
+		$has_update     = false;
+		$remote_version = '';
+
+		if ( null !== $release ) {
+			$remote_version = ltrim( $release['tag_name'], 'vV' );
+
+			if ( version_compare( $remote_version, $this->current_version, '>' ) ) {
+				$has_update = true;
+
+				// Inject into the update_plugins transient so WP shows the update row.
+				$update_data = get_site_transient( 'update_plugins' );
+				if ( ! is_object( $update_data ) ) {
+					$update_data = new \stdClass();
+				}
+				if ( ! isset( $update_data->response ) || ! is_array( $update_data->response ) ) {
+					$update_data->response = array();
+				}
+				$update_data->response[ $this->plugin_basename ] = $this->build_update_object( $release, $remote_version );
+				set_site_transient( 'update_plugins', $update_data );
+			}
 		}
 
-		wp_safe_redirect( admin_url( 'plugins.php?dh_indexnow_checked=1&dh_indexnow_has_update=' . ( $has_update ? '1' : '0' ) ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'dh_indexnow_checked'    => '1',
+					'dh_indexnow_has_update' => $has_update ? '1' : '0',
+					'dh_indexnow_remote_ver' => rawurlencode( $remote_version ),
+				),
+				admin_url( 'plugins.php' )
+			)
+		);
 		exit;
 	}
 
@@ -267,22 +291,62 @@ class Updater {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$has_update = ! empty( $_GET['dh_indexnow_has_update'] );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$remote_ver = isset( $_GET['dh_indexnow_remote_ver'] ) ? sanitize_text_field( wp_unslash( $_GET['dh_indexnow_remote_ver'] ) ) : '';
 
 		// Check if the API call had an error.
 		$api_error = get_transient( self::ERROR_KEY );
 
 		if ( $has_update ) {
 			$class   = 'notice-warning';
-			$message = __( 'DH IndexNow: A new version is available! You can update it above.', 'dh-indexnow' );
+			$message = sprintf(
+				/* translators: 1: remote version, 2: installed version. */
+				__( 'DH IndexNow: Update available! GitHub version %1$s (installed: %2$s). You can update above.', 'dh-indexnow' ),
+				$remote_ver,
+				$this->current_version
+			);
 		} elseif ( $api_error ) {
 			$class   = 'notice-error';
 			$message = __( 'DH IndexNow: Update check failed — ', 'dh-indexnow' ) . $api_error;
 		} else {
 			$class   = 'notice-success';
-			$message = __( 'DH IndexNow: You are running the latest version.', 'dh-indexnow' );
+			$message = sprintf(
+				/* translators: 1: installed version, 2: GitHub version (or empty). */
+				__( 'DH IndexNow: You are running the latest version (%1$s).', 'dh-indexnow' ),
+				$this->current_version
+			);
+			if ( ! empty( $remote_ver ) ) {
+				$message .= ' ' . sprintf(
+					/* translators: %s: GitHub release version. */
+					__( 'GitHub release: %s.', 'dh-indexnow' ),
+					$remote_ver
+				);
+			}
 		}
 
 		printf( '<div class="notice %s is-dismissible"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
+	}
+
+	/**
+	 * Build the update object used by WordPress to display and process an update.
+	 *
+	 * @param array  $release        GitHub release data.
+	 * @param string $remote_version Cleaned version string (no v prefix).
+	 * @return object Update object for the WP transient.
+	 */
+	private function build_update_object( array $release, string $remote_version ): object {
+		return (object) array(
+			'slug'         => $this->plugin_slug,
+			'plugin'       => $this->plugin_basename,
+			'new_version'  => $remote_version,
+			'url'          => $release['html_url'],
+			'package'      => $release['zipball_url'],
+			'icons'        => array(),
+			'banners'      => array(),
+			'tested'       => '',
+			'requires'     => '6.0',
+			'requires_php' => '8.0',
+		);
 	}
 
 	/**
