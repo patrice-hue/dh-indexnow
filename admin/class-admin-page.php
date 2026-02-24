@@ -111,9 +111,10 @@ class Admin_Page {
 		}
 
 		$tabs = array(
-			'general' => __( 'General', 'dh-indexnow' ),
-			'manual'  => __( 'Manual Submit', 'dh-indexnow' ),
-			'logs'    => __( 'Logs', 'dh-indexnow' ),
+			'general'       => __( 'General', 'dh-indexnow' ),
+			'manual'        => __( 'Manual Submit', 'dh-indexnow' ),
+			'logs'          => __( 'Logs', 'dh-indexnow' ),
+			'configuration' => __( 'Configuration', 'dh-indexnow' ),
 		);
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -143,6 +144,9 @@ class Admin_Page {
 						break;
 					case 'logs':
 						include DH_INDEXNOW_DIR . 'admin/views/settings-logs.php';
+						break;
+					case 'configuration':
+						include DH_INDEXNOW_DIR . 'admin/views/settings-configuration.php';
 						break;
 					default:
 						include DH_INDEXNOW_DIR . 'admin/views/settings-general.php';
