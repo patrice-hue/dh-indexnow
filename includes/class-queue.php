@@ -43,29 +43,40 @@ class Queue {
 	/**
 	 * Add a URL to the submission queue.
 	 *
+	 * Creates one queue entry per engine so that each engine's result
+	 * is logged in its own row and never overwritten.
+	 *
 	 * @param string $url     The URL to submit.
 	 * @param string $action  Action type: updated or deleted.
 	 * @param array  $engines Engines to submit to: bing, google.
-	 * @return int|false Inserted row ID or false on failure.
+	 * @return int|false Last inserted row ID or false on failure.
 	 */
 	public function add( string $url, string $action = 'updated', array $engines = array( 'bing', 'google' ) ): int|false {
 		global $wpdb;
 		$table = $wpdb->prefix . 'dh_indexnow_queue';
 
-		$result = $wpdb->insert(
-			$table,
-			array(
-				'url'        => $url,
-				'action'     => $action,
-				'engines'    => wp_json_encode( $engines ),
-				'status'     => 'pending',
-				'attempts'   => 0,
-				'created_at' => current_time( 'mysql' ),
-			),
-			array( '%s', '%s', '%s', '%s', '%d', '%s' )
-		);
+		$last_id = false;
 
-		return $result ? (int) $wpdb->insert_id : false;
+		foreach ( $engines as $engine ) {
+			$result = $wpdb->insert(
+				$table,
+				array(
+					'url'        => $url,
+					'action'     => $action,
+					'engines'    => wp_json_encode( array( $engine ) ),
+					'status'     => 'pending',
+					'attempts'   => 0,
+					'created_at' => current_time( 'mysql' ),
+				),
+				array( '%s', '%s', '%s', '%s', '%d', '%s' )
+			);
+
+			if ( $result ) {
+				$last_id = (int) $wpdb->insert_id;
+			}
+		}
+
+		return $last_id;
 	}
 
 	/**
