@@ -116,3 +116,50 @@
 .dh-indexnow-logs .tablenav .alignleft select {
 	margin-right: 5px;
 }
+
+/* Configuration tab */
+.dh-indexnow-configuration {
+	max-width: 900px;
+}
+
+.dh-indexnow-configuration h2 {
+	margin-top: 30px;
+}
+
+.dh-indexnow-configuration h3 {
+	margin-top: 20px;
+}
+
+.dh-indexnow-configuration hr {
+	margin: 30px 0;
+}
+
+.dh-indexnow-configuration ol,
+.dh-indexnow-configuration ul.ul-disc {
+	margin-left: 20px;
+}
+
+.dh-indexnow-configuration ol li,
+.dh-indexnow-configuration ul.ul-disc li {
+	margin-bottom: 6px;
+}
+
+.dh-indexnow-configuration pre {
+	background: #f0f0f1;
+	padding: 8px 12px;
+	margin: 6px 0;
+	overflow-x: auto;
+}
+
+.dh-indexnow-configuration pre code {
+	font-size: 13px;
+}
+
+.dh-indexnow-status-table {
+	max-width: 700px;
+}
+
+.dh-indexnow-status-table td:first-child,
+.dh-indexnow-status-table th:first-child {
+	width: 200px;
+}
