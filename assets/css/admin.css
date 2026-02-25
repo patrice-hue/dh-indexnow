@@ -49,12 +49,26 @@
 	color: #721c24;
 }
 
+.dh-indexnow-badge--updated {
+	background: #d1ecf1;
+	color: #0c5460;
+}
+
+.dh-indexnow-badge--deleted {
+	background: #e2d5f1;
+	color: #4a235a;
+}
+
 /* Logs table columns */
 .column-date {
 	width: 160px;
 }
 
 .column-engine {
+	width: 100px;
+}
+
+.column-action {
 	width: 100px;
 }
 

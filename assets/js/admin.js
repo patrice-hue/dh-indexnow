@@ -9,6 +9,31 @@
 	var i18n = dhIndexNow.i18n;
 
 	/**
+	 * Toggle engine checkboxes based on action selection.
+	 *
+	 * When "deleted" is selected, Bing is unchecked and disabled because
+	 * the IndexNow API does not support URL deletion requests.
+	 *
+	 * @param {string} actionFieldset  Selector for the action radio fieldset.
+	 * @param {string} enginesFieldset Selector for the engines checkbox fieldset.
+	 */
+	function bindActionToggle(actionFieldset, enginesFieldset) {
+		$(actionFieldset).on('change', 'input[type="radio"]', function () {
+			var isDeleted   = $(this).val() === 'deleted';
+			var $bingCheckbox = $(enginesFieldset).find('input[value="bing"]');
+			var $googleCheckbox = $(enginesFieldset).find('input[value="google"]');
+
+			if (isDeleted) {
+				$bingCheckbox.prop('checked', false).prop('disabled', true);
+				$googleCheckbox.prop('checked', true);
+			} else {
+				$bingCheckbox.prop('disabled', false).prop('checked', true);
+				$googleCheckbox.prop('checked', true);
+			}
+		});
+	}
+
+	/**
 	 * Manual URL submission handler.
 	 */
 	function initManualSubmit() {
@@ -18,6 +43,8 @@
 		if (!$btn.length) {
 			return;
 		}
+
+		bindActionToggle('#dh-indexnow-action', '#dh-indexnow-engines');
 
 		$btn.on('click', function () {
 			var urls = $('#dh-indexnow-urls').val().trim();
@@ -35,6 +62,8 @@
 				return;
 			}
 
+			var submitAction = $('#dh-indexnow-action input[type="radio"]:checked').val() || 'updated';
+
 			$btn.prop('disabled', true).text(i18n.submitting);
 			$spinner.addClass('is-active');
 
@@ -45,7 +74,8 @@
 					action: 'dh_indexnow_manual_submit',
 					nonce: dhIndexNow.nonce,
 					urls: urls,
-					engines: engines
+					engines: engines,
+					submit_action: submitAction
 				},
 				success: function (response) {
 					if (response.success && response.data.results) {
@@ -78,9 +108,11 @@
 
 		$.each(results, function (_, result) {
 			var statusClass = result.status === 'done' ? 'dh-indexnow-badge--done' : 'dh-indexnow-badge--failed';
+			var actionLabel = result.submit_action === 'deleted' ? 'Deleted' : 'Updated';
 			var row = '<tr>' +
 				'<td><code>' + escapeHtml(result.url) + '</code></td>' +
 				'<td>' + escapeHtml(result.engine) + '</td>' +
+				'<td>' + escapeHtml(actionLabel) + '</td>' +
 				'<td><span class="dh-indexnow-badge ' + statusClass + '">' + escapeHtml(result.status) + '</span></td>' +
 				'<td>' + escapeHtml(String(result.http_code)) + '</td>' +
 				'<td>' + escapeHtml(result.timestamp) + '</td>' +
@@ -103,6 +135,8 @@
 			return;
 		}
 
+		bindActionToggle('#dh-indexnow-bulk-action', '#dh-indexnow-bulk-engines');
+
 		$btn.on('click', function () {
 			var postType = $('#dh-indexnow-bulk-post-type').val();
 
@@ -116,6 +150,8 @@
 				return;
 			}
 
+			var submitAction = $('#dh-indexnow-bulk-action input[type="radio"]:checked').val() || 'updated';
+
 			$btn.prop('disabled', true).text(i18n.processing);
 			$spinner.addClass('is-active');
 			$message.text('');
@@ -127,7 +163,8 @@
 					action: 'dh_indexnow_bulk_submit',
 					nonce: dhIndexNow.nonce,
 					post_type: postType,
-					engines: engines
+					engines: engines,
+					submit_action: submitAction
 				},
 				success: function (response) {
 					if (response.success) {

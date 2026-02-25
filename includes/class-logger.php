@@ -25,9 +25,10 @@ class Logger {
 	 * @param int    $http_code HTTP response code.
 	 * @param string $response  Response body or message.
 	 * @param string $status    Result status (done or failed).
+	 * @param string $action    Action type: updated or deleted.
 	 * @return void
 	 */
-	public static function log( int $queue_id, string $url, string $engine, int $http_code, string $response, string $status = 'done' ): void {
+	public static function log( int $queue_id, string $url, string $engine, int $http_code, string $response, string $status = 'done', string $action = 'updated' ): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'dh_indexnow_queue';
 
@@ -50,7 +51,7 @@ class Logger {
 				$table,
 				array(
 					'url'          => $url,
-					'action'       => 'updated',
+					'action'       => $action,
 					'engines'      => wp_json_encode( array( $engine ) ),
 					'engine'       => $engine,
 					'status'       => $status,

@@ -28,6 +28,22 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</tr>
 
 		<tr>
+			<th scope="row"><?php esc_html_e( 'Action', 'dh-indexnow' ); ?></th>
+			<td>
+				<fieldset id="dh-indexnow-action">
+					<label>
+						<input type="radio" name="submit_action" value="updated" checked />
+						<?php esc_html_e( 'URL Updated — Notify search engines of new or updated content', 'dh-indexnow' ); ?>
+					</label><br />
+					<label>
+						<input type="radio" name="submit_action" value="deleted" />
+						<?php esc_html_e( 'URL Deleted — Request removal from search engines (Google only)', 'dh-indexnow' ); ?>
+					</label>
+				</fieldset>
+			</td>
+		</tr>
+
+		<tr>
 			<th scope="row"><?php esc_html_e( 'Submit To', 'dh-indexnow' ); ?></th>
 			<td>
 				<fieldset id="dh-indexnow-engines">
@@ -60,6 +76,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<tr>
 					<th><?php esc_html_e( 'URL', 'dh-indexnow' ); ?></th>
 					<th><?php esc_html_e( 'Engine', 'dh-indexnow' ); ?></th>
+					<th><?php esc_html_e( 'Action', 'dh-indexnow' ); ?></th>
 					<th><?php esc_html_e( 'Status', 'dh-indexnow' ); ?></th>
 					<th><?php esc_html_e( 'HTTP Code', 'dh-indexnow' ); ?></th>
 					<th><?php esc_html_e( 'Timestamp', 'dh-indexnow' ); ?></th>
@@ -88,6 +105,22 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 						</option>
 					<?php endforeach; ?>
 				</select>
+			</td>
+		</tr>
+
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Action', 'dh-indexnow' ); ?></th>
+			<td>
+				<fieldset id="dh-indexnow-bulk-action">
+					<label>
+						<input type="radio" name="bulk_submit_action" value="updated" checked />
+						<?php esc_html_e( 'URL Updated', 'dh-indexnow' ); ?>
+					</label><br />
+					<label>
+						<input type="radio" name="bulk_submit_action" value="deleted" />
+						<?php esc_html_e( 'URL Deleted (Google only)', 'dh-indexnow' ); ?>
+					</label>
+				</fieldset>
 			</td>
 		</tr>
 
