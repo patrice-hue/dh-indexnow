@@ -80,6 +80,7 @@ $base_url = add_query_arg( array( 'page' => 'dh-indexnow', 'tab' => 'logs' ), ad
 				<th class="column-date"><?php esc_html_e( 'Date', 'dh-indexnow' ); ?></th>
 				<th class="column-url"><?php esc_html_e( 'URL', 'dh-indexnow' ); ?></th>
 				<th class="column-engine"><?php esc_html_e( 'Engine', 'dh-indexnow' ); ?></th>
+				<th class="column-action"><?php esc_html_e( 'Action', 'dh-indexnow' ); ?></th>
 				<th class="column-status"><?php esc_html_e( 'Status', 'dh-indexnow' ); ?></th>
 				<th class="column-http-code"><?php esc_html_e( 'HTTP Code', 'dh-indexnow' ); ?></th>
 				<th class="column-response"><?php esc_html_e( 'Response', 'dh-indexnow' ); ?></th>
@@ -88,7 +89,7 @@ $base_url = add_query_arg( array( 'page' => 'dh-indexnow', 'tab' => 'logs' ), ad
 		<tbody>
 			<?php if ( empty( $items ) ) : ?>
 				<tr>
-					<td colspan="6"><?php esc_html_e( 'No log entries found.', 'dh-indexnow' ); ?></td>
+					<td colspan="7"><?php esc_html_e( 'No log entries found.', 'dh-indexnow' ); ?></td>
 				</tr>
 			<?php else : ?>
 				<?php foreach ( $items as $item ) : ?>
@@ -96,6 +97,16 @@ $base_url = add_query_arg( array( 'page' => 'dh-indexnow', 'tab' => 'logs' ), ad
 						<td><?php echo esc_html( $item->created_at ); ?></td>
 						<td class="column-url"><code><?php echo esc_html( $item->url ); ?></code></td>
 						<td><?php echo esc_html( ucfirst( $item->engine ?? '—' ) ); ?></td>
+						<td>
+							<?php
+							$action_label = ( 'deleted' === ( $item->action ?? 'updated' ) )
+								? __( 'Deleted', 'dh-indexnow' )
+								: __( 'Updated', 'dh-indexnow' );
+							?>
+							<span class="dh-indexnow-badge dh-indexnow-badge--<?php echo esc_attr( $item->action ?? 'updated' ); ?>">
+								<?php echo esc_html( $action_label ); ?>
+							</span>
+						</td>
 						<td>
 							<span class="dh-indexnow-badge dh-indexnow-badge--<?php echo esc_attr( $item->status ); ?>">
 								<?php echo esc_html( ucfirst( $item->status ) ); ?>

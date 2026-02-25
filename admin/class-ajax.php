@@ -71,8 +71,22 @@ class Ajax {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'dh-indexnow' ) ), 403 );
 		}
 
-		$urls_raw = isset( $_POST['urls'] ) ? sanitize_textarea_field( wp_unslash( $_POST['urls'] ) ) : '';
-		$engines  = isset( $_POST['engines'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['engines'] ) ) : array( 'bing', 'google' );
+		$urls_raw      = isset( $_POST['urls'] ) ? sanitize_textarea_field( wp_unslash( $_POST['urls'] ) ) : '';
+		$engines       = isset( $_POST['engines'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['engines'] ) ) : array( 'bing', 'google' );
+		$submit_action = isset( $_POST['submit_action'] ) ? sanitize_key( wp_unslash( $_POST['submit_action'] ) ) : 'updated';
+
+		// Validate action.
+		if ( ! in_array( $submit_action, array( 'updated', 'deleted' ), true ) ) {
+			$submit_action = 'updated';
+		}
+
+		// IndexNow does not support deletion requests — force Google only.
+		if ( 'deleted' === $submit_action ) {
+			$engines = array_filter( $engines, fn( $e ) => 'bing' !== $e );
+			if ( empty( $engines ) ) {
+				$engines = array( 'google' );
+			}
+		}
 
 		// Parse URLs — support newline and comma separation.
 		$urls = preg_split( '/[\n,]+/', $urls_raw, -1, PREG_SPLIT_NO_EMPTY );
@@ -86,7 +100,7 @@ class Ajax {
 
 		$results = array();
 
-		// Submit to Bing / IndexNow.
+		// Submit to Bing / IndexNow (update only — IndexNow does not support deletions).
 		if ( in_array( 'bing', $engines, true ) ) {
 			$api_key = $this->settings->get_api_key();
 			if ( ! empty( $api_key ) ) {
@@ -94,13 +108,14 @@ class Ajax {
 				foreach ( $bing_results as $batch_result ) {
 					foreach ( $batch_result['urls'] as $url ) {
 						$status = $batch_result['success'] ? 'done' : 'failed';
-						Logger::log( 0, $url, 'bing', $batch_result['http_code'], $batch_result['response'], $status );
+						Logger::log( 0, $url, 'bing', $batch_result['http_code'], $batch_result['response'], $status, $submit_action );
 						$results[] = array(
-							'url'       => $url,
-							'engine'    => 'bing',
-							'http_code' => $batch_result['http_code'],
-							'status'    => $status,
-							'timestamp' => current_time( 'Y-m-d H:i:s' ),
+							'url'           => $url,
+							'engine'        => 'bing',
+							'submit_action' => $submit_action,
+							'http_code'     => $batch_result['http_code'],
+							'status'        => $status,
+							'timestamp'     => current_time( 'Y-m-d H:i:s' ),
 						);
 					}
 				}
@@ -111,16 +126,18 @@ class Ajax {
 		if ( in_array( 'google', $engines, true ) ) {
 			$creds = $this->settings->get_google_credentials();
 			if ( ! empty( $creds ) ) {
-				$google_results = Google_Api::submit( $urls, $creds );
+				$google_action  = 'deleted' === $submit_action ? 'URL_DELETED' : 'URL_UPDATED';
+				$google_results = Google_Api::submit( $urls, $creds, $google_action );
 				foreach ( $google_results as $result ) {
 					$status = $result['success'] ? 'done' : 'failed';
-					Logger::log( 0, $result['url'], 'google', $result['http_code'], $result['response'], $status );
+					Logger::log( 0, $result['url'], 'google', $result['http_code'], $result['response'], $status, $submit_action );
 					$results[] = array(
-						'url'       => $result['url'],
-						'engine'    => 'google',
-						'http_code' => $result['http_code'],
-						'status'    => $status,
-						'timestamp' => current_time( 'Y-m-d H:i:s' ),
+						'url'           => $result['url'],
+						'engine'        => 'google',
+						'submit_action' => $submit_action,
+						'http_code'     => $result['http_code'],
+						'status'        => $status,
+						'timestamp'     => current_time( 'Y-m-d H:i:s' ),
 					);
 				}
 			}
@@ -143,8 +160,22 @@ class Ajax {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'dh-indexnow' ) ), 403 );
 		}
 
-		$post_type = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : '';
-		$engines   = isset( $_POST['engines'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['engines'] ) ) : array( 'bing', 'google' );
+		$post_type     = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : '';
+		$engines       = isset( $_POST['engines'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['engines'] ) ) : array( 'bing', 'google' );
+		$submit_action = isset( $_POST['submit_action'] ) ? sanitize_key( wp_unslash( $_POST['submit_action'] ) ) : 'updated';
+
+		// Validate action.
+		if ( ! in_array( $submit_action, array( 'updated', 'deleted' ), true ) ) {
+			$submit_action = 'updated';
+		}
+
+		// IndexNow does not support URL deletion — enforce Google only.
+		if ( 'deleted' === $submit_action ) {
+			$engines = array_values( array_diff( $engines, array( 'bing' ) ) );
+			if ( empty( $engines ) ) {
+				$engines = array( 'google' );
+			}
+		}
 
 		if ( empty( $post_type ) || ! post_type_exists( $post_type ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid post type.', 'dh-indexnow' ) ) );
@@ -169,16 +200,18 @@ class Ajax {
 			if ( ! $url || in_array( $url, $excluded, true ) ) {
 				continue;
 			}
-			$this->queue->add( $url, 'updated', $engines );
+			$this->queue->add( $url, $submit_action, $engines );
 			++$queued;
 		}
 
+		$message_key = 'deleted' === $submit_action
+			? /* translators: %d: number of URLs queued */
+			  __( '%d URLs queued for deletion request. They will be processed by WP-Cron (Google only).', 'dh-indexnow' )
+			: /* translators: %d: number of URLs queued */
+			  __( '%d URLs queued for submission. They will be processed by WP-Cron.', 'dh-indexnow' );
+
 		wp_send_json_success( array(
-			'message' => sprintf(
-				/* translators: %d: number of URLs queued */
-				__( '%d URLs queued for submission. They will be processed by WP-Cron.', 'dh-indexnow' ),
-				$queued
-			),
+			'message' => sprintf( $message_key, $queued ),
 			'count'   => $queued,
 		) );
 	}
