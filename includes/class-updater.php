@@ -122,6 +122,10 @@ class Updater {
 				$transient->response = array();
 			}
 			$transient->response[ $this->plugin_basename ] = $this->build_update_object( $release, $remote_version );
+		} else {
+			// Remove any stale update entry left over from a previous check
+			// (e.g. after the plugin was just updated to the latest version).
+			unset( $transient->response[ $this->plugin_basename ] );
 		}
 
 		return $transient;
@@ -199,6 +203,10 @@ class Updater {
 		if ( is_plugin_active( $this->plugin_basename ) ) {
 			activate_plugin( $this->plugin_basename );
 		}
+
+		// Clear the cached GitHub release data so the next update check
+		// compares against a fresh version and does not show a stale update.
+		self::clear_cache();
 
 		return $response;
 	}
